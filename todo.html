@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html ng-app="fitnessTodoApp">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Fitness To-Do List</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h2 {
+            color: #2c3e50;
+        }
+
+        input[type="text"], select, button {
+            padding: 8px;
+            margin-right: 10px;
+        }
+
+        button {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #2ecc71;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #ecf0f1;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .done-true {
+            text-decoration: line-through;
+            color: gray;
+        }
+
+        .category {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .category-cardio {
+            color: #e74c3c;
+        }
+
+        .category-strength {
+            color: #3498db;
+        }
+
+        .category-flexibility {
+            color: #f39c12;
+        }
+
+        .progress-card, .encouragement-card {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #dff9fb;
+            border: 1px solid #2c3e50;
+            border-radius: 4px;
+            max-width: 400px;
+        }
+
+        .progress-bar {
+            margin-top: 10px;
+            height: 20px;
+            background-color: #dcdde1;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #27ae60;
+            width: 0;
+            border-radius: 10px;
+            text-align: center;
+            color: white;
+            font-size: 14px;
+        }
+
+        .summary {
+            margin-top: 10px;
+        }
+
+        .sticker {
+            display: inline-block;
+            padding: 5px;
+            background-color: #ffeb3b;
+            border-radius: 50%;
+            margin-top: 10px;
+            font-size: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body ng-controller="FitnessTodoController">
+
+    <h2>Fitness To-Do List</h2>
+
+    <input type="text" ng-model="todoText" placeholder="Add new fitness activity">
+    <select ng-model="todoCategory">
+        <option value="Cardio">Cardio</option>
+        <option value="Strength Training">Strength Training</option>
+        <option value="Flexibility">Flexibility</option>
+    </select>
+    <button ng-click="addTodo()">Add</button>
+
+    <ul>
+        <li ng-repeat="todo in todos">
+            <span>
+                <input type="checkbox" ng-model="todo.done" ng-change="updateProgress()"> 
+                <span class="category" ng-class="getCategoryClass(todo.category)">
+                    {{todo.category}}:
+                </span>
+                <span ng-class="{'done-true': todo.done}">{{todo.text}}</span>
+            </span>
+            <button ng-click="removeTodo($index)">Remove</button>
+        </li>
+    </ul>
+
+    <p>{{remaining()}} of {{todos.length}} activities remaining</p>
+
+    <button ng-click="archive()">Archive Completed</button>
+
+    <!-- Progress Card -->
+    <div class="progress-card">
+        <h3>Progress</h3>
+        <div class="progress-bar">
+            <div class="progress-bar-fill" style="width: {{progressPercentage}}%">
+                {{progressPercentage}}%
+            </div>
+        </div>
+        <div class="summary">
+            Completed: {{completedTasks}} | Remaining: {{remaining()}} | Total: {{todos.length}}
+        </div>
+    </div>
+
+    <!-- Encouragement Card -->
+    <div class="encouragement-card" ng-if="todos.length > 0">
+        <h3>Keep Going!</h3>
+        <p>{{encouragementMessage}}</p>
+        <div class="sticker" ng-if="stickerMessage">{{stickerMessage}}</div>
+    </div>
+
+    <script>
+        var fitnessTodoApp = angular.module('fitnessTodoApp', []);
+
+        fitnessTodoApp.controller('FitnessTodoController', function ($scope) {
+            $scope.todos = [
+                { text: 'Run 5km', category: 'Cardio', done: false },
+                { text: '30 minutes yoga', category: 'Flexibility', done: false },
+                { text: 'Weightlifting session', category: 'Strength Training', done: false }
+            ];
+
+            $scope.progressPercentage = 0;
+            $scope.completedTasks = 0;
+            $scope.encouragementMessage = '';
+            $scope.stickerMessage = '';
+
+            $scope.addTodo = function () {
+                if ($scope.todoText && $scope.todoCategory) {
+                    $scope.todos.push({ text: $scope.todoText, category: $scope.todoCategory, done: false });
+                    $scope.todoText = '';
+                    $scope.todoCategory = '';
+                    $scope.updateProgress();
+                }
+            };
+
+            $scope.getCategoryClass = function (category) {
+                switch (category) {
+                    case 'Cardio': return 'category-cardio';
+                    case 'Strength Training': return 'category-strength';
+                    case 'Flexibility': return 'category-flexibility';
+                    default: return '';
+                }
+            };
+
+            $scope.remaining = function () {
+                var count = 0;
+                angular.forEach($scope.todos, function (todo) {
+                    count += todo.done ? 0 : 1;
+                });
+                return count;
+            };
+
+            $scope.removeTodo = function (index) {
+                $scope.todos.splice(index, 1);
+                $scope.updateProgress();
+            };
+
+            $scope.archive = function () {
+                var oldTodos = $scope.todos;
+                $scope.todos = [];
+                angular.forEach(oldTodos, function (todo) {
+                    if (!todo.done) $scope.todos.push(todo);
+                });
+                $scope.updateProgress();
+            };
+
+            $scope.updateProgress = function () {
+                var totalTasks = $scope.todos.length;
+                var completedTasks = 0;
+                angular.forEach($scope.todos, function (todo) {
+                    completedTasks += todo.done ? 1 : 0;
+                });
+                $scope.completedTasks = completedTasks;
+                $scope.progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+                // Update encouragement message based on progress
+                if ($scope.progressPercentage === 0) {
+                    $scope.encouragementMessage = "Let's get started! Every step counts!";
+                } else if ($scope.progressPercentage > 0 && $scope.progressPercentage < 50) {
+                    $scope.encouragementMessage = "You're doing great! Keep pushing!";
+                    $scope.stickerMessage = "Good Job!";
+                } else if ($scope.progressPercentage >= 50 && $scope.progressPercentage < 100) {
+                    $scope.encouragementMessage = "You're halfway there! Stay strong!";
+                    $scope.stickerMessage = "Keep Going!";
+                } else if ($scope.progressPercentage === 100) {
+                    $scope.encouragementMessage = "Amazing job! You've completed all your tasks!";
+                    $scope.stickerMessage = "You Did It!";
+                } else {
+                    $scope.stickerMessage = "";
+                }
+            };
+        });
+    </script>
+
+</body>
+
+</html>
